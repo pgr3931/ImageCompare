@@ -10,9 +10,12 @@
     <UserControl.Resources>
         <viewmodel:UriConverter x:Key="UriConverter"/>
         <viewmodel:TimeConverter x:Key="TimeConverter"/>
-        
+        <viewmodel:SizeConverter x:Key="SizeConverter"/>
+        <viewmodel:ImageSizeConverter x:Key="ImageSizeConverter"/>
+
         <Style TargetType="TextBox" BasedOn="{StaticResource TextBoxStyle}">
             <EventSetter Event="GotKeyboardFocus" Handler="TextBox_GotKeyboardFocus"/>
+            <EventSetter Event="LostKeyboardFocus" Handler="TextBox_LostKeyboardFocus"/>
         </Style>
         <Style x:Key="Opacity" TargetType="Grid">
             <Setter Property="Grid.Opacity" Value="0" />
@@ -46,9 +49,9 @@
 
             <Grid Grid.Column="1" HorizontalAlignment="Right">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="140" />
-                    <ColumnDefinition Width="140" />
-                    <ColumnDefinition Width="140" />
+                    <ColumnDefinition Width="150" />
+                    <ColumnDefinition Width="150" />
+                    <ColumnDefinition Width="150" />
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" HorizontalAlignment="Center" Text="{Binding ElapsedTime, UpdateSourceTrigger=PropertyChanged, StringFormat='Time: {0}', Converter={StaticResource TimeConverter}}" />
                 <TextBlock Grid.Column="1" HorizontalAlignment="Center" Text="{Binding SearchedImages, UpdateSourceTrigger=PropertyChanged, StringFormat='Checked: {0}'}" />
@@ -56,7 +59,7 @@
             </Grid>
         </Grid>
 
-        <ListBox Grid.Row="1" ItemsSource="{Binding Images}" Background="Transparent">
+        <!--<ListBox Grid.Row="1" ItemsSource="{Binding Images}" Background="Transparent">
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <StackPanel Orientation="Horizontal">
@@ -65,9 +68,9 @@
                     </StackPanel>
                 </DataTemplate>
             </ListBox.ItemTemplate>
-        </ListBox>
-        
-        <!--<Grid Grid.Row="1" >
+        </ListBox>-->
+
+        <Grid Grid.Row="1" >
             <Grid.ColumnDefinitions >
                 <ColumnDefinition Width="5*"/>
                 <ColumnDefinition Width="1*"/>
@@ -78,8 +81,8 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <Grid Grid.Column="0">
-                <Image Source="{Binding CurrentImage.Item1}" />
+            <Grid Grid.Column="0" Margin="0,0,50,0" >
+                <Image Source="{Binding CurrentImage.Item1}" HorizontalAlignment="Right"/>
                 <Grid Style="{StaticResource Opacity}" Cursor="Hand" Visibility="{Binding DeletePossible}">
                     <Grid.InputBindings>
                         <MouseBinding
@@ -97,12 +100,22 @@
                     </Image>
                 </Grid>
             </Grid>
-            <TextBlock Grid.Column="0" Grid.Row="1" HorizontalAlignment="Center" Text="{Binding CurrentImage.Item1, Converter={StaticResource UriConverter}}" />
+            <Grid Grid.Column="0" Grid.Row="1" >
+                <TextBlock Padding="0,10,0,10" Margin="25,0,50,0" FontSize="18" HorizontalAlignment="Left" Text="{Binding CurrentImage.Item1, Converter={StaticResource UriConverter}}" />
+                <TextBlock Margin="0,0,50,0" Padding="0,10,0,10" FontSize="18" HorizontalAlignment="Right" Text="{Binding CurrentImage.Item1, Converter={StaticResource ImageSizeConverter}}" >
+                    <TextBlock.Foreground>
+                        <MultiBinding Converter="{StaticResource SizeConverter}">
+                            <Binding Path="CurrentImage.Item1" />
+                            <Binding Path="CurrentImage.Item2" />
+                        </MultiBinding>
+                    </TextBlock.Foreground>
+                </TextBlock>
+            </Grid>
 
             <Button Grid.Column="1" VerticalAlignment="Center" Visibility="{Binding DeletePossible}" Command="{Binding SkipCommand}">Skip</Button>
-            
-            <Grid Grid.Column="2"  >
-                <Image Source="{Binding CurrentImage.Item2}" />
+
+            <Grid Grid.Column="2" Margin="50,0,0,0">
+                <Image Source="{Binding CurrentImage.Item2}" HorizontalAlignment="Left" />
                 <Grid Style="{StaticResource Opacity}" Cursor="Hand" Visibility="{Binding DeletePossible}">
                     <Grid.InputBindings>
                         <MouseBinding
@@ -120,7 +133,17 @@
                     </Image>
                 </Grid>
             </Grid>
-            <TextBlock Grid.Column="2" Grid.Row="1" HorizontalAlignment="Center" Text="{Binding CurrentImage.Item2, Converter={StaticResource UriConverter}}" />
-        </Grid>-->
+            <Grid Grid.Column="2" Grid.Row="1">
+                <TextBlock Padding="0,10,0,10" Margin="50,0,0,0" FontSize="18" HorizontalAlignment="Left" Text="{Binding CurrentImage.Item2, Converter={StaticResource ImageSizeConverter}}" >
+                    <TextBlock.Foreground>
+                        <MultiBinding Converter="{StaticResource SizeConverter}">
+                            <Binding Path="CurrentImage.Item2" />
+                            <Binding Path="CurrentImage.Item1" />
+                        </MultiBinding>
+                    </TextBlock.Foreground>
+                </TextBlock>
+                <TextBlock Padding="0,10,0,10" Margin="50,0,25,0" FontSize="18" HorizontalAlignment="Right" Text="{Binding CurrentImage.Item2, Converter={StaticResource UriConverter}}" />
+            </Grid>
+        </Grid>
     </Grid>
 </UserControl>

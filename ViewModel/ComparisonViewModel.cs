@@ -37,6 +37,8 @@ namespace ImageCompareUI.ViewModel
             };
         }
 
+        private readonly string delimiter = " --..-- ";
+        private readonly string savePath = Path.Combine(Directory.GetCurrentDirectory(), "skippedImages.txt");
         public ObservableCollection<Tuple<string, string>> Images { get; }
         private bool Running { get; set; }
 
@@ -158,7 +160,7 @@ namespace ImageCompareUI.ViewModel
                         }, ct);
 
 
-                        await Task.Run(() => ImageComparer.Compare(Root!, Images, (x) => SearchedImages = x));
+                        await Task.Run(() => ImageComparer.Compare(Root!, savePath, delimiter, Images, (x) => SearchedImages = x));
 
                         tokenSource.Cancel();
                         Running = false;
@@ -178,11 +180,22 @@ namespace ImageCompareUI.ViewModel
                     {
                         try
                         {
-                            var uri = ((BitmapImage?)x)?.UriSource.OriginalString;
-                            Images.RemoveAt(0);
-                            if (x != null && File.Exists(uri))
+                            string? uri = null;
+
+                            if(x?.GetType() == typeof(BitmapImage))
                             {
-                                Images.RemoveAt(0);
+                                uri = ((BitmapImage?)x)?.UriSource.OriginalString;
+                            }
+
+                            if (x?.GetType() == typeof(int))
+                            {
+                                
+                                uri = (((int)x) == 1 ? CurrentImage?.Item1 : CurrentImage?.Item2)?.UriSource.OriginalString;
+                            }
+
+                            Images.RemoveAt(0);
+                            if (uri != null && File.Exists(uri))
+                            {
                                 FileSystem.DeleteFile(uri, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
                                 return;
                             }
@@ -195,7 +208,7 @@ namespace ImageCompareUI.ViewModel
                                 "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                         }
                     },
-                    (x) => true);
+                    (x) => Images.Count > 0);
             }
         }
 
@@ -204,7 +217,12 @@ namespace ImageCompareUI.ViewModel
         {
             get
             {
-                return _skipCommand ??= new RelayCommand((x) => Images.RemoveAt(0), (x) => true);
+                return _skipCommand ??= new RelayCommand((x) =>
+                {
+                    var skippedImages = Images[0];
+                    Images.RemoveAt(0);
+                    IOManager.Save(savePath, skippedImages.Item1, skippedImages.Item2, delimiter);
+                }, (x) => Images.Count > 0);
             }
         }
     }

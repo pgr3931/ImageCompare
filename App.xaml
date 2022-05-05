@@ -7,8 +7,8 @@
             <!--<Setter Property="OverridesDefaultStyle" Value="True" />-->
             <Setter Property="Height" Value="30" />
             <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="BorderBrush" Value="#158BBE" />
-            <Setter Property="Background" Value="#181A1D" />
+            <Setter Property="BorderBrush" Value="#66ffffff" />
+            <Setter Property="Background" Value="#00000000" />
 
             <Setter Property="Template">
                 <Setter.Value>
@@ -27,15 +27,15 @@
 
             <Style.Triggers>
                 <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="BorderBrush" Value="#158BBE" />
-                    <Setter Property="Background" Value="#181A1D" />
+                    <Setter Property="BorderBrush" Value="#66ffffff" />
+                    <Setter Property="Background" Value="#00000000" />
                     <Setter Property="Opacity" Value="0.5" />
                 </Trigger>
             </Style.Triggers>
         </Style>
         <Style x:Key="TextBoxStyle" TargetType="TextBox">
-            <Setter Property="Background" Value="#181A1D" />
-            <Setter Property="BorderBrush" Value="#158BBE" />
+            <Setter Property="Background" Value="#00000000" />
+            <Setter Property="BorderBrush" Value="#66ffffff" />
             <Setter Property="BorderThickness" Value="2" />
             <Setter Property="Foreground" Value="AliceBlue" />
             <Setter Property="FontSize" Value="16" />

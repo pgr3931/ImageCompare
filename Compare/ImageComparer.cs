@@ -1,132 +1,104 @@
-﻿using System;
+﻿using ImageCompare.Model;
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
 namespace ImageCompare
 {
+    public static class Extensions
+    {
+        public static bool ContainsPair(this List<Tuple<string, string>> tuples, string key, string value)
+        {
+            return tuples.Find(t => (t.Item1 == key && t.Item2 == value) || (t.Item1 == value && t.Item2 == key)) != null;
+        }
+    }
+
     public class ImageComparer
     {
-        public static void Compare(string root, ICollection<Tuple<string, string>> images, Action<int> setSearchedImages)
+        public static void Compare(string root, string savePath, string delimiter, ICollection<Tuple<string, string>> images, Action<int> setSearchedImages)
         {
-            var lockObject = new object();
-            var hashes = new Dictionary<string, string>();
+            var skippedImages = IOManager.Load(savePath, delimiter);
+            var imageExtensions = new List<string> { "jpg", "jpeg", "png", "jfif", "webp" };
+            var hashes = new ConcurrentDictionary<string, string>();
             var count = 0;
 
             TraverseTreeParallelForEach(root, (f) =>
             {
-                if (!f.ToLower().Contains("mp4") && !f.ToLower().Contains("webm"))
+                if (f != null && imageExtensions.Contains(f[(f.LastIndexOf(".") + 1)..].ToLower()))
                 {
-                    if (f != null)
+                    var hash = GetHash(f);
+                    if (hash != null)
                     {
-                        var hash = GetHash(f);
-                        if (hash != null)
+                        var added = hashes.TryAdd(hash, f);
+                        if (!added)
                         {
-                            lock (lockObject)
+                            var duplicate = hashes[hash];
+
+                            var skippedImage = skippedImages != null && (skippedImages.ContainsPair(f, duplicate) || skippedImages.ContainsPair(duplicate, f));
+
+                            if (!skippedImage)
                             {
-                                if (hashes.ContainsKey(hash))
-                                {
-                                    Application.Current.Dispatcher.BeginInvoke(images.Add, Tuple.Create(f, hashes[hash]));
-                                }
-                                else
-                                {
-                                    hashes.Add(hash, f);
-                                }
-                                count++;
-                                Application.Current.Dispatcher.BeginInvoke(setSearchedImages, count);
+                                Application.Current.Dispatcher.BeginInvoke(images.Add, Tuple.Create(f, duplicate));
                             }
                         }
+                       
+                        Interlocked.Increment(ref count);
+                        Application.Current.Dispatcher.BeginInvoke(setSearchedImages, count);
                     }
                 }
             });
-
-            //Parallel.ForEach(files, (file, _, i) =>
-            //{
-            //    if (file != null)
-            //    {
-            //        var hash = GetHash(file);
-            //        if (hash != null)
-            //        {
-            //            lock (lockObject)
-            //            {
-            //                if (hashes.ContainsKey(hash))
-            //                {
-            //                    Application.Current.Dispatcher.BeginInvoke(images.Add, Tuple.Create(file, hashes[hash]));
-            //                }
-            //                else
-            //                {
-            //                    hashes.Add(hash, file);
-            //                }
-            //                count++;
-            //                Application.Current.Dispatcher.BeginInvoke(setSearchedImages, count);
-            //            }
-            //        }
-            //    }
-            //});
         }
 
-        private static string GetHash(string source)
+        private static string? GetHash(string source)
         {
-            //create new image with 16x16 pixel
-            var bmp = new Bitmap(Image.FromFile(source).GetThumbnailImage(32, 32, null, IntPtr.Zero));
-            LockBitmap bmpMin = new(bmp);
-            List<int> pixels = new();
-
-            int r = 0;
-            int g = 0;
-            int b = 0;
-            int total = 0;
-
-            bmpMin.LockBits();
-            for (int j = 0; j < bmpMin.Height; j++)
+            try
             {
-                for (int i = 0; i < bmpMin.Width; i++)
+                var width = 32;
+                var height = 32;
+                //create new image with 16x16 pixel
+                var bmp = new Bitmap(Image.FromFile(source).GetThumbnailImage(width, height, null, IntPtr.Zero));
+                LockBitmap bmpMin = new(bmp);
+                var pixels = new int[width * height + 3];
+
+                int r = 0;
+                int g = 0;
+                int b = 0;
+                int total = 0;
+
+                bmpMin.LockBits();
+                for (int j = 0; j < bmpMin.Height; j++)
                 {
-                    //reduce colors to true / false
-                    var pixel = bmpMin.GetPixel(i, j);
-                    pixels.Add(pixel.GetBrightness() < 0.5f ? 1 : 0);
-                    r += pixel.R;
-                    g += pixel.G;
-                    b += pixel.B;
-                    total++;
+                    for (int i = 0; i < bmpMin.Width; i++)
+                    {
+                        //reduce colors to true / false
+                        var pixel = bmpMin.GetPixel(i, j);
+                        pixels[j * i] = pixel.GetBrightness() < 0.5f ? 1 : 0;
+                        r += pixel.R;
+                        g += pixel.G;
+                        b += pixel.B;
+                        total++;
+                    }
                 }
+                bmpMin.UnlockBits();
+
+                pixels[width * height] = r / total;
+                pixels[width * height + 1] = g / total;
+                pixels[width * height + 2] = b / total;
+
+                return string.Join(",", pixels);
             }
-            bmpMin.UnlockBits();
-
-            bmpMin = null;
-            bmp = null;
-
-            r /= total;
-            g /= total;
-            b /= total;
-            pixels.Add(r + g + b);
-
-            return string.Join(",", pixels);
-        }
-
-        public static void TraverseFilesParallelForEach(List<string> files, Action<string> action)
-        {
-            while (files.Count > 0)
+            catch (Exception)
             {
-                // Execute in parallel if there are enough files in the directory.
-                // Otherwise, execute sequentially.Files are opened and processed
-                // synchronously but this could be modified to perform async I/O.
-                try
-                {
-                    Parallel.ForEach(files, file => action(file));
-                }
-                catch (AggregateException ae)
-                {
-                    ae.Handle((ex) => true);
-                }
+                return null;
             }
         }
 
-        public static void TraverseTreeParallelForEach(string root, Action<string> action)
+        private static void TraverseTreeParallelForEach(string root, Action<string> action)
         {
             // Data structure to hold names of subfolders to be examined for files.
             Stack<string> dirs = new();
@@ -157,9 +129,6 @@ namespace ImageCompare
                     continue;
                 }
 
-                // Execute in parallel if there are enough files in the directory.
-                // Otherwise, execute sequentially.Files are opened and processed
-                // synchronously but this could be modified to perform async I/O.
                 try
                 {
                     Parallel.ForEach(files, file => action(file));

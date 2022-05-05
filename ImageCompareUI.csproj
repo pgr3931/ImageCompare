@@ -5,11 +5,21 @@
     <TargetFramework>net6.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
+    <ApplicationIcon>Resources\compare.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <None Remove="Resources\bg.png" />
     <None Remove="Resources\bin.png" />
+    <None Remove="Resources\compare.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Resources\compare.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\compare.png" />
   </ItemGroup>
 
   <ItemGroup>

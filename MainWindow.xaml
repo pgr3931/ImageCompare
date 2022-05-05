@@ -6,7 +6,9 @@
         xmlns:local="clr-namespace:ImageCompareUI.View"
         mc:Ignorable="d"
         Title="ImageCompare" MinWidth="920" MinHeight="500" Height="500" Width="920"
-        WindowState="Maximized">
+        WindowState="Maximized"       
+        Icon="Resources/compare.png"
+>
     <Window.Background>
         <ImageBrush ImageSource="Resources/bg.png" Stretch="Fill" Opacity="0.4" />
     </Window.Background>
